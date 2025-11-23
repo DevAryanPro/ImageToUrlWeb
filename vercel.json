@@ -13,15 +13,15 @@
     },
     {
       "src": "/docs",
-      "dest": "/api/index.py"
+      "dest": "/api/app.py"
     },
     {
       "src": "/api/upload",
-      "dest": "/api/index.py"
+      "dest": "/api/app.py"
     },
     {
       "src": "/share/(.*)",
-      "dest": "/api/index.py"
+      "dest": "/api/app.py"
     },
     {
       "src": "/(.*)",
