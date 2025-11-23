@@ -8,24 +8,33 @@ import time # Import time for realistic file processing simulation
 
 # Configuration
 # This is the valid API key prefix required for the Bearer Token authentication.
-VALID_API_KEY_PREFIX = "kaiiddo-ith"
+VALID_API_KEY_PREFIX = "kaiiddo-ituw"
 # The new, professional, big valid token (32 hex characters plus prefix).
 FULL_VALID_TOKEN = f"{VALID_API_KEY_PREFIX}-8b7c4a1e9f2d6g3h5j0k9l8m7n6p5q4r" 
 
-# Set up the upload folder (In this demo, files are saved here and served via /share)
-UPLOAD_FOLDER = 'uploaded_files'
+# --- VERCEL FILE HOSTING WARNING ---
+# WARNING: In a Vercel Serverless environment, this UPLOAD_FOLDER path 
+# is temporary and files WILL NOT persist between function invocations.
+# For production use, replace file.save(...) with an AWS S3 or GCS upload.
+# For this demo, we create it in the /tmp directory which is writable in serverless.
+UPLOAD_FOLDER = '/tmp/uploaded_files'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+# --- END WARNING ---
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- ROUTES ---
 
-@app.route('/')
-def serve_landing_page():
-    """Serves the main landing page (index.html)."""
-    return send_from_directory('.', 'index.html')
+# Vercel handles serving the root '/' (index.html) as a static asset automatically,
+# but we keep this handler for local development compatibility if needed.
+# This handler is often not necessary when deploying static assets directly.
+# @app.route('/')
+# def serve_landing_page():
+#     """Serves the main landing page (index.html)."""
+#     # We rely on Vercel's static file serving for the root path
+#     return send_from_directory('.', 'index.html')
 
 @app.route('/docs')
 def serve_api_docs_json():
@@ -63,7 +72,7 @@ def serve_api_docs_json():
                 ]
             }
         ],
-        "notes": "Files are permanently hosted by the Flask server in the UPLOAD_FOLDER and accessible via the provided sharedLink (/share/ route)."
+        "notes": "Files are temporarily hosted for demo purposes. In production, connect to persistent cloud storage."
     }
     return jsonify(docs_content)
 
@@ -78,7 +87,7 @@ def api_upload_file():
     auth_header = request.headers.get('Authorization')
     
     # Simulating a small delay for realistic processing time
-    time.sleep(0.5) 
+    time.sleep(0.1) # Reduced delay for serverless efficiency
     
     if not auth_header:
         # 401 Unauthorized - No authorization header
@@ -126,13 +135,13 @@ def api_upload_file():
         }), 400
 
     if file:
-        # 3. Handle File Storage (Files are hosted on the Koyeb persistent storage)
+        # 3. Handle File Storage (Temporary for Vercel demo)
         filename = secure_filename(file.filename)
         unique_id = uuid.uuid4().hex[:12] 
         # Files are stored with a unique ID prefix to ensure uniqueness and simple lookup
         storage_filename = f"{unique_id}-{filename}"
         
-        # This saves the file to the UPLOAD_FOLDER
+        # Saves the file to the temporary /tmp directory
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], storage_filename))
         
         # 4. Generate Success Response with Shared Link
@@ -151,8 +160,7 @@ def api_upload_file():
 @app.route('/share/<file_id>/<filename>')
 def serve_shared_file(file_id, filename):
     """
-    Serves the actual hosted file. 
-    The browser will open/download the image, video, or document directly.
+    Serves the actual hosted file from the temporary /tmp directory.
     """
     try:
         # Reconstruct the filename saved in the UPLOAD_FOLDER
@@ -161,5 +169,5 @@ def serve_shared_file(file_id, filename):
         # File not found
         return f"<h1>404 Not Found</h1><p>The file associated with ID <code>{file_id}</code> and filename <code>{filename}</code> could not be located on the Kaiiddo Cloud server.</p>", 404
 
-if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+# NOTE: The standard Flask entry point (if __name__ == '__main__': app.run(...)) 
+# is REMOVED, as Vercel handles the application startup.
